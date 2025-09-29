@@ -38,6 +38,18 @@ We use the base64 encoding algorithms described in [RFC 4648](https://www.rfc-ed
 
 (TODO: Include rough estimates for Log storage requirements (and witness if required))
 
+## Threat Model
+
+Transparency requires that the owner of that resource and the public, can enumerate all the different versions of that web resource which a transparency-enforcing client would accept. This raises the question of how clients know to enforce transparency for a specific resource. Clients cannot contact the transparency service to inquire whether a particular resource is enrolled as this would be both a privacy leak and a scaling challenge. Instead, clients must either be preprogrammed with the list of resources enrolled (as in HSTS-Preload) or discover it through the website telling them about enrollment (as in HSTS) or both.
+
+Once a client knows that a resource is enrolled, it is configured with a policy for how long to continue enforcing transparency for. Clients will not accept versions of the resource without a transparency proof (downgrades) until that time expires, or they are shown proof of a signal recorded in the transparency log that the resource has been unenrolled.
+
+The Transparency service itself is not required to maintain any invariants about the resources that it logs. This avoids the need for custom logic for different applications, as well as the need to align that behavior between different implementations of the transparency service.
+
+For example, if an application wants to ensure that transparency can never be disabled for a particular resource, it can include that signal directly in the resource which clients can use to update their policy. If the resource is ever served without transparency, then clients will reject that version of the resource. Similarly, if the website tries to remove the signal from the resource, that will be detectable in the transparency service's view of the resource.
+
+Importantly, a transparency system doesn't try to prevent transitions to a bad-state - for example - if a website is attacking its own clients. Instead, it simply makes it detectable. Actively preventing attacks is challenging because the transparency service needs to operate automatically and typically cannot know whether a given transition is innocuous or malicious.
+
 # The Transparency Service
 
 The Transparency Service maintains a mapping of domains to resource hashes (and further, the histories of those resources hashes). This is encoded as a prefix tree whose keys are domains and whose values are either a _tombstone_ entry, meaning an entry that has been deleted and only remains for logging purposes, or an _active_ entry, containing:
